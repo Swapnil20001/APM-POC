@@ -1,0 +1,10 @@
+FROM ubuntu
+RUN apt update && apt upgrade -y
+RUN apt install curl unzip -y
+RUN mkdir APM
+WORKDIR APM
+RUN curl -L -O https://artifacts.elastic.co/downloads/apm-server/apm-server-7.9.2-darwin-x86_64.tar.gz
+RUN tar xzvf apm-server-7.9.2-darwin-x86_64.tar.gz
+RUN cd apm-server-7.9.2-darwin-x86_64/
+CMD ["./apm-server -e"]
+

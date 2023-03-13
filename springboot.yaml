@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: log
+  name: spring-boot-simple
+  labels:
+    app: spring-boot-simple
+spec:
+  selector:
+    matchLabels:
+      app: spring-boot-simple
+  template:
+    metadata:
+      labels:
+        app: spring-boot-simple
+    spec:
+      containers:
+      - image: swapnil2000/apm-hl:6 #swapnil2000/spring:3.0      #swapnil2000/spring-javeline
+        imagePullPolicy: Always
+        name: spring-boot-simple1
+        # command:
+        #   - "java"
+        #   - "-javaagent:/apm-agent.jar"
+        #   - "-Delastic.apm.server_urls=http://apm-server.log.svc.cluster.local:8200"
+        #   - "-Delastic.apm.service_name=spring-boot-simple"
+        #   - "-jar"
+        #   - "app.jar"
+        env:
+          - name: ELASTIC_APM_ACTIVE
+            value: "true"
+          - name: ELASTIC_APM_SERVER
+            value: apm-server.log.svc.cluster.local:8200
+        ports:
+        - containerPort: 8080

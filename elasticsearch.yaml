@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-configmap
+  namespace: log
+  labels:
+    app: elasticsearch    
+data:
+  elasticsearch.yml: |
+          cluster.name: "docker-cluster"
+          network.host: 0.0.0.0
+          xpack.security.enabled: "true"
+          xpack.monitoring.collection.enabled: true
+          xpack.security.transport.ssl.enabled: true
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch-master
+  namespace: log
+  labels:
+    app: elasticsearch     
+spec:
+  serviceName: elasticsearch
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch 
+  template:
+    metadata:
+      labels:
+        app: elasticsearch    
+    spec:
+      initContainers:
+      - name: increase-vm-max-map-count
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144        
+        securityContext:
+          privileged: true
+      - name: increase-fd-ulimit
+        image: busybox:1.27.2
+        command:
+        - sh
+        - -c
+        - ulimit
+        - -n 65536          
+        securityContext:
+          privileged: true
+      - name: check-swap
+        image: busybox:1.27.2
+        command:
+        - sh
+        - -c
+        - cat
+        - /proc/swaps
+        securityContext:
+          privileged: true
+      terminationGracePeriodSeconds: 120
+      containers:
+      - name: elasticsearch-master
+        image: elasticsearch:7.9.2
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9200
+          name: transport
+        resources:
+          requests:
+            memory: 1000Mi
+            cpu: 500m
+          limits:
+            memory: 1500Mi
+            cpu: 1500m
+        securityContext:
+          capabilities:
+            add:
+            - IPC_LOCK
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MAX_LOCKED_MEMORY
+          value: "unlimited"
+        - name: ES_HEAP_SIZE
+          value: 1000m
+        - name: ES_JAVA_OPTS
+          value: -Xms1000m -Xmx1000m
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: node.master
+          value: "true"
+        - name: cluster.name
+          value: "es.cluster"
+        - name: cluster.no_master_block
+          value: "write"
+        - name: cluster.initial_master_nodes
+          value: "elasticsearch-master-0"
+        - name: discovery.seed_hosts
+          value: "elasticsearch-master-0"
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        volumeMounts:
+        - name : config-data
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          readOnly: true
+          subPath: elasticsearch.yml
+      volumes:
+      - name: config-data
+        configMap:
+          name: elasticsearch-configmap
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: log
+  labels:
+    app: elasticsearch
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+  - name: transport
+    port: 9200
+    protocol: TCP
+  clusterIP: None

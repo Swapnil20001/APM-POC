@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: log
+  name: apm-server-config
+  labels:
+    app: apm-server
+data:
+  apm-server.yml: |
+    apm-server:
+      host: "0.0.0.0:8200"
+    output.elasticsearch:
+      hosts: ['elasticsearch.log.svc.cluster.local.:9200']
+      username: elastic
+      password: kebV5K6j8dKw3Qb2NL7f
+      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: log
+  name: apm-server
+  labels:
+    app: apm-server
+spec:
+  ports:
+  - port: 8200
+    name: apm-server
+  selector:
+    app: apm-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: log
+  name: apm-server
+  labels:
+    app: apm-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apm-server
+  template:
+    metadata:
+      labels:
+        app: apm-server
+    spec:
+      containers:
+      - name: apm-server
+        image: elastic/apm-server:7.9.2
+        env:
+        - name: ELASTICSEARCH_HOST
+          value: elasticsearch.log.svc.cluster.local. #http://logs.non-prod.homelane.com
+        - name: ELASTICSEARCH_PORT
+          value: "9200"
+        # - name: ELASTICSEARCH_USERNAME
+        #   value: elastic
+        # - name: ELASTICSEARCH_PASSWORD
+        #   value: M0sZfTj47u7ONuKx8pyN
+        # - name: KIBANA_HOST
+        #   value: kibana.log.svc.cluster.local
+        # - name: KIBANA_PORT
+        #   value: "5601"
+        ports:
+        - containerPort: 8200
+          name: apm-server
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/apm-server/apm-server.yml
+          readOnly: true
+          subPath: apm-server.yml
+      volumes:
+      - name: config
+        configMap:
+          name: apm-server-config

@@ -1,0 +1,11 @@
+
+    setup.kibana:
+      host: '${KIBANA_HOST:kibana}:${KIBANA_PORT:5601}'
+
+
+https://search.maven.org/remotecontent?filepath=co/elastic/apm/elastic-apm-agent/1.36.0/elastic-apm-agent-1.36.0.jar
+
+ https://search.maven.org/remotecontent?filepath=co/elastic/apm/elastic-apm-agent/$ELASTIC_APM_VERSION/elastic-apm-agent-$ELASTIC_APM_VERSION.jar
+
+#         elasticsearch.username: "kibana"
+#         elasticsearch.password: "uk8xxHFAz5khzyIk1pzv"
